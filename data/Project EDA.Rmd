@@ -1,0 +1,129 @@
+---
+title: "Project EDA"
+author: "Agnes Li"
+date: "2022-11-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+This project uses data about body fat to investigate whether individuals can use their body density to predict their body fat percentage. The Siri equation assumes that the density of fat is 0.900 g cm−3 and that the density of the fat-free mass is 1.100 g cm−3. The equation is then: % fat = [(4.95/Density) − 4.50] × 100.
+
+Null Hypothesis: There is no relationship between the percentage of body fat for an individual and the body density.
+Alternative Hypothesis: There is a relationship between the percentage of body fat for an individual and the body density
+
+• Methodology:
+
+## Inpute
+• Describe the dataset: Number of independent variables, dependent variables
+There are 14 independent variables (Density, Age, Weight, Height, Neck, Chest, Abdomen, Hip, Thigh, Knee, Ankle, Bicepts, Forearm, and Wrist)  and 1 independent variable (Body Fat).
+
+• Describe the outcome variable, quantitative variables, categorical factor variables.
+The outcome variable is Percentage Body Fat, which was calculated using Siri's equation. All of the variables are quantitative. The predictor variable is Density, which was calculated from underwater weighing.
+
+## Exploratory Data Analysis
+```{r NAs}
+library(ggplot2)
+library(dplyr)
+bodyfat_data <- read.csv('bodyfat_1.csv')
+head(bodyfat_data)
+# Check for missing data or NA`s and decide appropriate mitigation steps.
+sum(is.na(bodyfat_data))
+```
+
+```{r summary}
+summary(bodyfat_data)
+```
+
+
+```{r histograms}
+for (col in 1:ncol(bodyfat_data)) {
+    hist(bodyfat_data[,col], main = names(bodyfat_data[col]))
+}
+```
+From looking at the histograms, it looks like each variable is normally distributed and some have outliers.
+
+
+```{r correlation matrix}
+library(corrplot)
+bf_matrix <- cor(bodyfat_data)
+bf_matrix
+corrplot(bf_matrix)
+```
+
+
+Body Mass Index is a simple calculation using a person's height and weight. The formula is BMI = weight(kg)/ height(m) squared
+
+Apply a threshold to the BMI variable to create BMI_cat.
+
+BMI Categories:
+Underweight = <18.5
+Normal weight = 18.5–24.9
+Overweight = 25–29.9
+Obesity = BMI of 30 or greater
+
+```{r BMI Categories}
+# change weight from lbs to kgs
+bodyfat_data$Weight_kg <- bodyfat_data$Weight / 2.205
+
+# change height from inches to meters
+bodyfat_data$Height_m <- bodyfat_data$Height / 39.37
+
+bodyfat_data$BMI <- bodyfat_data$Weight_kg / (bodyfat_data$Height_m ^ 2)
+
+# Categorize BMI data
+bodyfat_data$BMI_cat <- cut(bodyfat_data$BMI,
+                              c(-Inf, 18.5, 25, 30, Inf))
+levels(bodyfat_data$BMI_cat) = c("Underweight","Normal Weight","Overweight",
+                                     'Obesity')
+```
+
+```{r grouped hist age and BMI groups}
+
+age_bmi_group_hist <- ggplot(bodyfat_data, aes(x = Age, fill = BMI_cat, color = BMI_cat)) +  
+  geom_histogram(position = 'identity', alpha = 0.3) +
+  labs(title = 'Counts of Age grouped by BMI', x = 'Age', y = 'Count') +
+  scale_fill_manual(values = c('#006228', '#CD6E94', '#EE7D47', '#88BAD7')) +
+  scale_color_manual(values = c('#006228', '#CD6E94', '#EE7D47', '#88BAD7'))
+
+age_bmi_group_hist
+
+```
+
+
+GENERATIONS Defined
+Greatest Generation: pre-1928.
+Traditionalists/ Silent Generation: 1928 - 1946.
+Baby Boomers: 1946 - 1964.
+Gen X: 1965 - 1976.
+Gen Y / Millennials: 1977 - 1995.
+Gen Z / iGen / Centennials 1995 - 2010
+```{r Generations Categories}
+bodyfat_data$Generations <- cut(bodyfat_data$Age,
+                              c(-Inf, 27, 45, 57, 76, 94, Inf))
+levels(bodyfat_data$Generations) = c("Gen Z / iGen / Centennials","Gen Y / Millennials","Gen X",
+                                     'Baby Boomers', "Traditionalists / Silent Generation",
+                                 'Greatest Generation')
+```
+
+```{r plot generations with bmi_cat}
+
+gen_bmi_df <- bodyfat_data %>%
+  group_by(Generations, BMI_cat) %>%
+  summarise(count = n())
+gen_bmi_df
+
+gen_bmi_group_hist <- ggplot(gen_bmi_df, aes(x=Generations, y=count, fill=BMI_cat)) + 
+  geom_bar(stat="identity", position=position_dodge()) +
+  labs(title = 'Counts of BMI_cat grouped by Generation', x = 'Generation', y = 'Count') +
+  scale_fill_discrete(name = "BMI Groups")
+
+gen_bmi_group_hist
+```
+
+
+```
+
